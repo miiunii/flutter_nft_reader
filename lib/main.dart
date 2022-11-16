@@ -14,9 +14,7 @@ void main() async {
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp
-
-  ({super.key});
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -31,9 +29,7 @@ class MyApp extends StatelessWidget {
 }
 
 class MyHomePage extends StatefulWidget {
-  const MyHomePage
-
-  ({super.key, required this.title});
+  const MyHomePage({super.key, required this.title});
 
   final String title;
 
@@ -64,56 +60,47 @@ class _MyHomePageState extends State<MyHomePage> {
         color: Colors.amber,
         padding: const EdgeInsets.all(30),
         child: GestureDetector(
-          onTap: () => FocusScope.of(context).unfocus(),
-          child: SingleChildScrollView(
+            onTap: () => FocusScope.of(context).unfocus(),
+            child: SingleChildScrollView(
               child: Column(
-                  children: [
+                children: [
                   _getNfcWidgets(), // nfc 사용 가능 판별
-              const TextField(
-                decoration: InputDecoration(
-                  labelText: 'Time Interval',
-                ),
-              ),
-              const TextField(
-                decoration: InputDecoration(
-                  labelText: 'number write to nfc tag',
-                ),
-              ),
+                  const TextField(
+                    decoration: InputDecoration(
+                      labelText: 'Time Interval',
+                    ),
+                  ),
+                  const TextField(
+                    decoration: InputDecoration(
+                      labelText: 'number write to nfc tag',
+                    ),
+                  ),
 
-              Expanded(
-                child: Container(
-                  child: Row(
-                      mainAxisSize: MainAxisSize.max,
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
+                  Wrap(
+                    runSpacing: 5,
+                    spacing: 5,
+                    children: [
                       ElevatedButton(
-                      onPressed: () {},
-                  child: const Text('read & write value'),
-                ),
-                ElevatedButton(
-                  onPressed: () {},
-                  child: const Text('Reset the value'),
-                ),
-                ElevatedButton(
-                  onPressed: () {},
-                  child: const Text('Read value'),
-                ),
-                ElevatedButton(
-                  onPressed: () {},
-                  child: const Text('Write value'),
-                ),
-              )
-          ),
-        )
-        ], // children
+                        onPressed: () {},
+                        child: const Text('read & write value'),
+                      ),
+                      ElevatedButton(
+                        onPressed: () {},
+                        child: const Text('Reset the value'),
+                      ),
+                      ElevatedButton(
+                        onPressed: () {},
+                        child: const Text('Read value'),
+                      ),
+                      ElevatedButton(
+                        onPressed: () {},
+                        child: const Text('Write value'),
+                      ),
+                  ])
+                ], // children
+              ),
+            )),
       ),
-    )),
-    ),
-    floatingActionButton: FloatingActionButton(
-    onPressed: _incrementCounter,
-    tooltip: 'Increment',
-    child: const Icon(Icons.add),
-    ),
     );
   }
 
@@ -128,8 +115,8 @@ class _MyHomePageState extends State<MyHomePage> {
             onPressed: nfcRunning ? null : _listenForNFCEvents,
             child: Text(Platform.isAndroid
                 ? listenerRunning
-                ? 'NFC is running'
-                : 'Start NFC listener'
+                    ? 'NFC is running'
+                    : 'Start NFC listener'
                 : 'Read from tag'),
           ),
           TextButton(
@@ -139,8 +126,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 : 'Write to tag'),
           ),
           TextButton(
-              onPressed: () =>
-                  setState(() {
+              onPressed: () => setState(() {
                     _counter = 0;
                   }),
               child: const Text('Reset counter'))
@@ -229,10 +215,10 @@ class _MyHomePageState extends State<MyHomePage> {
                 if (wellKnownRecord.payload.first == 0x02) {
                   //Now we know the encoding is UTF8 and we can skip the first byte
                   final languageCodeAndContentBytes =
-                  wellKnownRecord.payload.skip(1).toList();
+                      wellKnownRecord.payload.skip(1).toList();
                   //Note that the language code can be encoded in ASCI, if you need it be carfully with the endoding
                   final languageCodeAndContentText =
-                  utf8.decode(languageCodeAndContentBytes);
+                      utf8.decode(languageCodeAndContentBytes);
                   //Cutting of the language code
                   final payload = languageCodeAndContentText.substring(2);
                   //Parsing the content to int
