@@ -30,7 +30,6 @@ class MyApp extends StatelessWidget {
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key, required this.title});
-
   final String title;
 
   @override
@@ -41,12 +40,6 @@ class _MyHomePageState extends State<MyHomePage> {
   int _counter = 0;
   bool listenerRunning = false;
   bool writeCounterOnNextContact = false;
-
-  void _incrementCounter() {
-    setState(() {
-      _counter++;
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -104,10 +97,17 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
+  Widget _checkNfcAbleWidgets() {
+    return Row(
+
+    );
+  }
+
   Widget _getNfcWidgets() {
     if (isNfcAvalible) {
       //For ios always false, for android true if running
       final nfcRunning = Platform.isAndroid && listenerRunning;
+
       return Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
