@@ -30,6 +30,7 @@ class MyApp extends StatelessWidget {
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key, required this.title});
+
   final String title;
 
   @override
@@ -41,6 +42,21 @@ class _MyHomePageState extends State<MyHomePage> {
   bool listenerRunning = false;
   bool writeCounterOnNextContact = false;
 
+  String repeatCounts = '';
+  String startingValue = '';
+  String intervalCounts = '';
+  String timeInterval = '';
+  String firstRoundValue = '';
+  String secondRoundValue = '';
+  String thirdRoundValue = '';
+  String fourthRoundValue = '';
+  String durationTime = '';
+
+  @override
+  void initState() {
+    super.initState();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -48,8 +64,8 @@ class _MyHomePageState extends State<MyHomePage> {
         title: Text(widget.title),
       ),
       body: Container(
-        width: 500,
-        height: 300,
+        width: 1000,
+        height: 1000,
         color: Colors.amber,
         padding: const EdgeInsets.all(30),
         child: GestureDetector(
@@ -58,48 +74,173 @@ class _MyHomePageState extends State<MyHomePage> {
               child: Column(
                 children: [
                   _getNfcWidgets(), // nfc 사용 가능 판별
-                  const TextField(
-                    decoration: InputDecoration(
-                      labelText: 'Time Interval',
-                    ),
-                  ),
-                  const TextField(
-                    decoration: InputDecoration(
-                      labelText: 'number write to nfc tag',
-                    ),
+
+                  Row(children: [
+                    Expanded(
+                        flex: 1,
+                        child: TextField(
+                            keyboardType: TextInputType.number,
+                            decoration: const InputDecoration(
+                                labelText: '반복횟수',
+                                enabledBorder: OutlineInputBorder(
+                                    borderSide: BorderSide(
+                                        width: 2, color: Colors.indigoAccent))),
+                            onChanged: (text) {
+                              setState(() {
+                                repeatCounts = text;
+                              });
+                            })),
+                    Expanded(
+                        flex: 1,
+                        child: TextField(
+                            keyboardType: TextInputType.number,
+                            decoration: const InputDecoration(
+                                labelText: '시작값',
+                                enabledBorder: OutlineInputBorder(
+                                    borderSide: BorderSide(
+                                        width: 2, color: Colors.indigoAccent))),
+                            onChanged: (text) {
+                              setState(() {
+                                startingValue = text;
+                              });
+                            })),
+                    Expanded(
+                        flex: 1,
+                        child: TextField(
+                            keyboardType: TextInputType.number,
+                            decoration: const InputDecoration(
+                                labelText: 'interval',
+                                enabledBorder: OutlineInputBorder(
+                                    borderSide: BorderSide(
+                                        width: 2, color: Colors.indigoAccent))),
+                            onChanged: (text) {
+                              setState(() {
+                                intervalCounts = text;
+                              });
+                            })),
+                    Expanded(
+                        flex: 1,
+                        child: TextField(
+                            keyboardType: TextInputType.number,
+                            decoration: const InputDecoration(
+                                labelText: '시간간격',
+                                enabledBorder: OutlineInputBorder(
+                                    borderSide: BorderSide(
+                                        width: 2, color: Colors.indigoAccent))),
+                            onChanged: (text) {
+                              setState(() {
+                                timeInterval = text;
+                              });
+                            }))
+                  ]),
+
+                  Row(
+                    children: [
+                      Expanded(
+                          flex: 1,
+                          child: TextField(
+                              keyboardType: TextInputType.number,
+                              decoration: const InputDecoration(
+                                  labelText: '1회',
+                                  enabledBorder: OutlineInputBorder(
+                                      borderSide: BorderSide(
+                                          width: 2,
+                                          color: Colors.indigoAccent))),
+                              onChanged: (text) {
+                                setState(() {
+                                  firstRoundValue = text;
+                                });
+                              })),
+                      Expanded(
+                          flex: 1,
+                          child: TextField(
+                              keyboardType: TextInputType.number,
+                              decoration: const InputDecoration(
+                                  labelText: '2회',
+                                  enabledBorder: OutlineInputBorder(
+                                      borderSide: BorderSide(
+                                          width: 2,
+                                          color: Colors.indigoAccent))),
+                              onChanged: (text) {
+                                setState(() {
+                                  secondRoundValue = text;
+                                });
+                              })),
+                      Expanded(
+                          flex: 1,
+                          child: TextField(
+                              keyboardType: TextInputType.number,
+                              decoration: const InputDecoration(
+                                  labelText: '3회',
+                                  enabledBorder: OutlineInputBorder(
+                                      borderSide: BorderSide(
+                                          width: 2,
+                                          color: Colors.indigoAccent))),
+                              onChanged: (text) {
+                                setState(() {
+                                  thirdRoundValue = text;
+                                });
+                              })),
+                      Expanded(
+                          flex: 1,
+                          child: TextField(
+                              keyboardType: TextInputType.number,
+                              decoration: const InputDecoration(
+                                  labelText: '4회',
+                                  enabledBorder: OutlineInputBorder(
+                                      borderSide: BorderSide(
+                                          width: 2,
+                                          color: Colors.indigoAccent))),
+                              onChanged: (text) {
+                                setState(() {
+                                  fourthRoundValue = text;
+                                });
+                              }))
+                    ],
                   ),
 
-                  Wrap(
-                    runSpacing: 5,
-                    spacing: 5,
+                  Row(children: [
+                    ElevatedButton(
+                      onPressed: () {},
+                      child: const Text('START'),
+                    ),
+                    Expanded(
+                      child: TextField(
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(
+                              labelText: '진행시간',
+                              enabledBorder: OutlineInputBorder(
+                                  borderSide: BorderSide(
+                                      width: 2, color: Colors.indigoAccent))),
+                          onChanged: (text) {
+                            setState(() {
+                              durationTime = text;
+                            });
+                          }),
+                    ),
+                    ElevatedButton(
+                      onPressed: () {},
+                      child: const Text('RESET'),
+                    )
+                  ]),
+
+                  Column(
                     children: [
-                      ElevatedButton(
-                        onPressed: () {},
-                        child: const Text('read & write value'),
-                      ),
-                      ElevatedButton(
-                        onPressed: () {},
-                        child: const Text('Reset the value'),
-                      ),
-                      ElevatedButton(
-                        onPressed: () {},
-                        child: const Text('Read value'),
-                      ),
-                      ElevatedButton(
-                        onPressed: () {},
-                        child: const Text('Write value'),
-                      ),
-                  ])
+                      Text('반복횟수 : $repeatCounts'),
+                      Text('시작값 : $startingValue'),
+                      Text('interval : $intervalCounts'),
+                      Text('시간간격 : $timeInterval'),
+                      Text('1회 : $firstRoundValue'),
+                      Text('2회 : $secondRoundValue'),
+                      Text('3회 : $thirdRoundValue'),
+                      Text('4회 : $fourthRoundValue'),
+                      Text('진행시간 : $durationTime'),
+                    ],
+                  )
                 ], // children
               ),
             )),
       ),
-    );
-  }
-
-  Widget _checkNfcAbleWidgets() {
-    return Row(
-
     );
   }
 
