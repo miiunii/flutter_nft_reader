@@ -1,4 +1,4 @@
-name: nfc_counter
+name: nfc_test_app
 description: Example project for my NFC Medium article see https://blog.devowl.de
 publish_to: 'none'
 

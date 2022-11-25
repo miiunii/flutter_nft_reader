@@ -2,10 +2,12 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:nfc_manager/nfc_manager.dart';
+import './utils/renderTextFormField.dart';
 import 'dart:convert' show utf8;
 
 /// Global flag if NFC is avalible
 bool isNfcAvalible = false;
+var _textEditingController = TextEditingController();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized(); // Required for the line below
@@ -66,139 +68,141 @@ class _MyHomePageState extends State<MyHomePage> {
       body: Container(
         width: 1000,
         height: 1000,
-        color: Colors.amber,
-        padding: const EdgeInsets.all(30),
         child: GestureDetector(
             onTap: () => FocusScope.of(context).unfocus(),
             child: SingleChildScrollView(
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  _getNfcWidgets(), // nfc 사용 가능 판별
-
-                  Row(children: [
-                    Expanded(
-                        flex: 1,
-                        child: TextField(
-                            keyboardType: TextInputType.number,
-                            decoration: const InputDecoration(
-                                labelText: '반복횟수',
-                                enabledBorder: OutlineInputBorder(
-                                    borderSide: BorderSide(
-                                        width: 2, color: Colors.indigoAccent))),
-                            onChanged: (text) {
-                              setState(() {
-                                repeatCounts = text;
-                              });
-                            })),
-                    Expanded(
-                        flex: 1,
-                        child: TextField(
-                            keyboardType: TextInputType.number,
-                            decoration: const InputDecoration(
-                                labelText: '시작값',
-                                enabledBorder: OutlineInputBorder(
-                                    borderSide: BorderSide(
-                                        width: 2, color: Colors.indigoAccent))),
-                            onChanged: (text) {
-                              setState(() {
-                                startingValue = text;
-                              });
-                            })),
-                    Expanded(
-                        flex: 1,
-                        child: TextField(
-                            keyboardType: TextInputType.number,
-                            decoration: const InputDecoration(
-                                labelText: 'interval',
-                                enabledBorder: OutlineInputBorder(
-                                    borderSide: BorderSide(
-                                        width: 2, color: Colors.indigoAccent))),
-                            onChanged: (text) {
-                              setState(() {
-                                intervalCounts = text;
-                              });
-                            })),
-                    Expanded(
-                        flex: 1,
-                        child: TextField(
-                            keyboardType: TextInputType.number,
-                            decoration: const InputDecoration(
-                                labelText: '시간간격',
-                                enabledBorder: OutlineInputBorder(
-                                    borderSide: BorderSide(
-                                        width: 2, color: Colors.indigoAccent))),
-                            onChanged: (text) {
-                              setState(() {
-                                timeInterval = text;
-                              });
-                            }))
-                  ]),
-
-                  Row(
-                    children: [
-                      Expanded(
-                          flex: 1,
-                          child: TextField(
-                              keyboardType: TextInputType.number,
-                              decoration: const InputDecoration(
-                                  labelText: '1회',
-                                  enabledBorder: OutlineInputBorder(
-                                      borderSide: BorderSide(
-                                          width: 2,
-                                          color: Colors.indigoAccent))),
-                              onChanged: (text) {
-                                setState(() {
-                                  firstRoundValue = text;
-                                });
-                              })),
-                      Expanded(
-                          flex: 1,
-                          child: TextField(
-                              keyboardType: TextInputType.number,
-                              decoration: const InputDecoration(
-                                  labelText: '2회',
-                                  enabledBorder: OutlineInputBorder(
-                                      borderSide: BorderSide(
-                                          width: 2,
-                                          color: Colors.indigoAccent))),
-                              onChanged: (text) {
-                                setState(() {
-                                  secondRoundValue = text;
-                                });
-                              })),
-                      Expanded(
-                          flex: 1,
-                          child: TextField(
-                              keyboardType: TextInputType.number,
-                              decoration: const InputDecoration(
-                                  labelText: '3회',
-                                  enabledBorder: OutlineInputBorder(
-                                      borderSide: BorderSide(
-                                          width: 2,
-                                          color: Colors.indigoAccent))),
-                              onChanged: (text) {
-                                setState(() {
-                                  thirdRoundValue = text;
-                                });
-                              })),
-                      Expanded(
-                          flex: 1,
-                          child: TextField(
-                              keyboardType: TextInputType.number,
-                              decoration: const InputDecoration(
-                                  labelText: '4회',
-                                  enabledBorder: OutlineInputBorder(
-                                      borderSide: BorderSide(
-                                          width: 2,
-                                          color: Colors.indigoAccent))),
-                              onChanged: (text) {
-                                setState(() {
-                                  fourthRoundValue = text;
-                                });
-                              }))
-                    ],
-                  ),
-
+                  Container(
+                      padding: const EdgeInsets.fromLTRB(0, 30, 0, 40),
+                      color: Colors.red,
+                      child: Text(
+                        _checkSupportNfc(), // nfc 사용 가능 판별
+                      )),
+                  Container(
+                      padding: const EdgeInsets.fromLTRB(0, 0, 0, 40),
+                      color: Colors.cyanAccent,
+                      width: 600,
+                      child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            Expanded(
+                                child: renderTextFormField(
+                                    keyboardType:
+                                        const TextInputType.numberWithOptions(
+                                            decimal: true),
+                                    decoration: const InputDecoration(),
+                                    label: '반복횟수',
+                                    onSaved: (newValue) {},
+                                    validator: (value) {})),
+                            Expanded(
+                                child: renderTextFormField(
+                                    keyboardType:
+                                        const TextInputType.numberWithOptions(
+                                            decimal: true),
+                                    decoration: const InputDecoration(),
+                                    label: '시작값',
+                                    onSaved: (newValue) {},
+                                    validator: (value) {})),
+                            Expanded(
+                                child: renderTextFormField(
+                                    keyboardType:
+                                        const TextInputType.numberWithOptions(
+                                            decimal: true),
+                                    decoration: const InputDecoration(),
+                                    label: 'interval',
+                                    onSaved: (newValue) {},
+                                    validator: (value) {})),
+                            Expanded(
+                                child: renderTextFormField(
+                                    keyboardType:
+                                        const TextInputType.numberWithOptions(
+                                            decimal: true),
+                                    decoration: const InputDecoration(),
+                                    label: '시간간격',
+                                    onSaved: (newValue) {},
+                                    validator: (value) {}))
+                          ])),
+                  Container(
+                      padding: const EdgeInsets.fromLTRB(0, 0, 0, 60),
+                      width: 1000,
+                      child: Row(
+                        children: [
+                          Expanded(
+                              flex: 1,
+                              child: TextField(
+                                  controller: _textEditingController,
+                                  keyboardType:
+                                      const TextInputType.numberWithOptions(
+                                          decimal: true),
+                                  decoration: const InputDecoration(
+                                      labelText: '1회',
+                                      enabledBorder: OutlineInputBorder(
+                                          borderSide: BorderSide(
+                                              width: 2,
+                                              color: Colors.indigoAccent))),
+                                  onChanged: (text) {
+                                    setState(() {
+                                      firstRoundValue = text;
+                                    });
+                                  })),
+                          Expanded(
+                              flex: 1,
+                              child: TextField(
+                                  controller: _textEditingController,
+                                  keyboardType:
+                                      const TextInputType.numberWithOptions(
+                                          decimal: true),
+                                  decoration: const InputDecoration(
+                                      labelText: '2회',
+                                      enabledBorder: OutlineInputBorder(
+                                          borderSide: BorderSide(
+                                              width: 2,
+                                              color: Colors.indigoAccent))),
+                                  onChanged: (text) {
+                                    setState(() {
+                                      secondRoundValue = text;
+                                    });
+                                  })),
+                          Expanded(
+                              flex: 1,
+                              child: TextField(
+                                  controller: _textEditingController,
+                                  keyboardType:
+                                      const TextInputType.numberWithOptions(
+                                          decimal: true),
+                                  decoration: const InputDecoration(
+                                      labelText: '3회',
+                                      enabledBorder: OutlineInputBorder(
+                                          borderSide: BorderSide(
+                                              width: 2,
+                                              color: Colors.indigoAccent))),
+                                  onChanged: (text) {
+                                    setState(() {
+                                      thirdRoundValue = text;
+                                    });
+                                  })),
+                          Expanded(
+                              flex: 1,
+                              child: TextField(
+                                  controller: _textEditingController,
+                                  keyboardType:
+                                      const TextInputType.numberWithOptions(
+                                          decimal: true),
+                                  decoration: const InputDecoration(
+                                      labelText: '4회',
+                                      enabledBorder: OutlineInputBorder(
+                                          borderSide: BorderSide(
+                                              width: 2,
+                                              color: Colors.indigoAccent))),
+                                  onChanged: (text) {
+                                    setState(() {
+                                      fourthRoundValue = text;
+                                    });
+                                  }))
+                        ],
+                      )),
                   Row(children: [
                     ElevatedButton(
                       onPressed: () {},
@@ -206,7 +210,8 @@ class _MyHomePageState extends State<MyHomePage> {
                     ),
                     Expanded(
                       child: TextField(
-                          keyboardType: TextInputType.number,
+                          keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true),
                           decoration: const InputDecoration(
                               labelText: '진행시간',
                               enabledBorder: OutlineInputBorder(
@@ -219,24 +224,13 @@ class _MyHomePageState extends State<MyHomePage> {
                           }),
                     ),
                     ElevatedButton(
-                      onPressed: () {},
+                      onPressed: () {
+                        _alert("message");
+                        _resetAllValue();
+                      },
                       child: const Text('RESET'),
                     )
-                  ]),
-
-                  Column(
-                    children: [
-                      Text('반복횟수 : $repeatCounts'),
-                      Text('시작값 : $startingValue'),
-                      Text('interval : $intervalCounts'),
-                      Text('시간간격 : $timeInterval'),
-                      Text('1회 : $firstRoundValue'),
-                      Text('2회 : $secondRoundValue'),
-                      Text('3회 : $thirdRoundValue'),
-                      Text('4회 : $fourthRoundValue'),
-                      Text('진행시간 : $durationTime'),
-                    ],
-                  )
+                  ])
                 ], // children
               ),
             )),
@@ -244,43 +238,16 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
-  Widget _getNfcWidgets() {
+  String _checkSupportNfc() {
     if (isNfcAvalible) {
-      //For ios always false, for android true if running
-      final nfcRunning = Platform.isAndroid && listenerRunning;
-
-      return Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          TextButton(
-            onPressed: nfcRunning ? null : _listenForNFCEvents,
-            child: Text(Platform.isAndroid
-                ? listenerRunning
-                    ? 'NFC is running'
-                    : 'Start NFC listener'
-                : 'Read from tag'),
-          ),
-          TextButton(
-            onPressed: writeCounterOnNextContact ? null : _writeNfcTag,
-            child: Text(writeCounterOnNextContact
-                ? 'Waiting for tag to write'
-                : 'Write to tag'),
-          ),
-          TextButton(
-              onPressed: () => setState(() {
-                    _counter = 0;
-                  }),
-              child: const Text('Reset counter'))
-        ],
-      );
+      return "You can use NFC! Have fun";
     } else {
       if (Platform.isIOS) {
         //Ios doesnt allow the user to turn of NFC at all,  if its not avalible it means its not build in
-        return const Text("Your device doesn't support NFC");
+        return "Your device doesn't support NFC.\n Because IOS doesn't support it";
       } else {
         //Android phones can turn of NFC in the settings
-        return const Text(
-            "Your device doesn't support NFC or it's turned off in the system settings");
+        return "Your device doesn't support NFC or it's turned off in the system settings";
       }
     }
   }
@@ -415,4 +382,30 @@ class _MyHomePageState extends State<MyHomePage> {
     //Writing a requires to read the tag first, on android this call might do nothing as the listner is already running
     _listenForNFCEvents();
   }
+
+  void _resetAllValue() {
+    _textEditingController.clear();
+  }
 }
+
+//For ios always false, for android true if running
+// final nfcRunning = Platform.isAndroid && listenerRunning;
+// Row(
+// mainAxisAlignment: MainAxisAlignment.center,
+// children: [
+// TextButton(
+// onPressed: nfcRunning ? null : _listenForNFCEvents,
+// child: Text(Platform.isAndroid
+// ? listenerRunning
+// ? 'NFC is running'
+//     : 'Start NFC listener'
+//     : 'Read from tag'),
+// ),
+// TextButton(
+// onPressed: writeCounterOnNextContact ? null : _writeNfcTag,
+// child: Text(writeCounterOnNextContact
+// ? 'Waiting for tag to write'
+//     : 'Write to tag'),
+// )
+// ],
+// );
