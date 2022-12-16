@@ -6,8 +6,8 @@ renderTextFormField({
   required FormFieldSetter onSaved,
   required FormFieldValidator validator,
   required InputDecoration decoration,
-  required TextInputType keyboardType
 }) {
+
   assert(onSaved != null);
   assert(validator != null);
 
@@ -28,7 +28,8 @@ renderTextFormField({
         onSaved: onSaved,
         validator: validator,
         decoration: decoration,
-        keyboardType: keyboardType,
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        autovalidateMode: AutovalidateMode.onUserInteraction
       ),
     ],
   );

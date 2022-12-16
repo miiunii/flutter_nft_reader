@@ -1,18 +1,19 @@
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:nfc_manager/nfc_manager.dart';
+import 'package:provider/provider.dart';
 import './utils/renderTextFormField.dart';
+import './utils/checking.dart';
+import './utils/customTimer.dart';
 import 'dart:convert' show utf8;
 
-/// Global flag if NFC is avalible
-bool isNfcAvalible = false;
 var _textEditingController = TextEditingController();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized(); // Required for the line below
-  isNfcAvalible = await NfcManager.instance.isAvailable();
-  runApp(const MyApp());
+  runApp(MultiProvider(providers: [
+    ChangeNotifierProvider(create: (_) => CustomTimer()),
+  ], child: const MyApp()));
 }
 
 class MyApp extends StatelessWidget {
@@ -54,6 +55,8 @@ class _MyHomePageState extends State<MyHomePage> {
   String fourthRoundValue = '';
   String durationTime = '';
 
+  final formKey = GlobalKey<FormState>();
+
   @override
   void initState() {
     super.initState();
@@ -65,191 +68,221 @@ class _MyHomePageState extends State<MyHomePage> {
       appBar: AppBar(
         title: Text(widget.title),
       ),
-      body: Container(
-        width: 1000,
-        height: 1000,
-        child: GestureDetector(
-            onTap: () => FocusScope.of(context).unfocus(),
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Container(
-                      padding: const EdgeInsets.fromLTRB(0, 30, 0, 40),
-                      color: Colors.red,
-                      child: Text(
-                        _checkSupportNfc(), // nfc 사용 가능 판별
-                      )),
-                  Container(
-                      padding: const EdgeInsets.fromLTRB(0, 0, 0, 40),
-                      color: Colors.cyanAccent,
-                      width: 600,
-                      child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      body: ChangeNotifierProvider(
+        create: (BuildContext context) => CustomTimer(),
+        child: SizedBox(
+          width: MediaQuery.of(context).size.width,
+          height: 1000,
+          child: GestureDetector(
+              onTap: () => FocusScope.of(context).unfocus(),
+              child: SingleChildScrollView(
+                  child: Form(
+                key: formKey,
+                child: Column(
+                  children: [
+                    Container(
+                        padding: const EdgeInsets.fromLTRB(0, 30, 0, 40),
+                        child: FutureBuilder<String>(
+                            future: Checking.checkSupportNfc(),
+                            builder: (context, snapshot) {
+                              if (snapshot.hasData) {
+                                String? status = snapshot.data;
+                                return Text(status!);
+                              } else if (snapshot.hasError) {
+                                return const Text("에러 일때 화면");
+                              } else {
+                                return const Text("로딩 화면");
+                              }
+                            })),
+                    Container(
+                        padding: const EdgeInsets.fromLTRB(0, 0, 0, 40),
+                        width: 600,
+                        child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: <Widget>[
+                              const SizedBox(width: 30),
+                              Expanded(
+                                  child: renderTextFormField(
+                                      decoration: const InputDecoration(),
+                                      label: '반복횟수',
+                                      onSaved: (newValue) {
+                                        setState(() {
+                                          repeatCounts = newValue!;
+                                        });
+                                      },
+                                      validator: (value) {
+                                        if (value.isEmpty) {
+                                          return '값을 입력해주세요';
+                                        }
+
+                                        int valueAsInt = int.parse(value);
+                                        if (valueAsInt < 1 || valueAsInt > 4) {
+                                          return '1~4 값을 입력';
+                                        }
+
+                                        return null;
+                                      })),
+                              const SizedBox(width: 30),
+                              Expanded(
+                                  child: renderTextFormField(
+                                      decoration: const InputDecoration(),
+                                      label: '시작값',
+                                      onSaved: (newValue) {
+                                        setState(() {
+                                          startingValue = newValue;
+                                        });
+                                      },
+                                      validator: (value) {
+                                        if (value.isEmpty) {
+                                          return '값을 입력해주세요';
+                                        }
+
+                                        int valueAsInt = int.parse(value);
+                                        if (valueAsInt < 1 || valueAsInt > 20) {
+                                          return '1~20 값을 입력';
+                                        }
+
+                                        return null;
+                                      })),
+                              const SizedBox(width: 30),
+                              Expanded(
+                                  child: renderTextFormField(
+                                      decoration: const InputDecoration(),
+                                      label: 'interval',
+                                      onSaved: (newValue) {
+                                        setState(() {
+                                          intervalCounts = newValue;
+                                        });
+                                      },
+                                      validator: (value) {
+                                        if (value.isEmpty) {
+                                          return '값을 입력해주세요';
+                                        }
+
+                                        double valueAsDouble =
+                                            double.parse(value);
+                                        if (valueAsDouble < 1.0 ||
+                                            valueAsDouble > 9.9) {
+                                          return '1.0~9.9 값을 입력';
+                                        }
+
+                                        return null;
+                                      })),
+                              const SizedBox(width: 30),
+                              Expanded(
+                                  child: renderTextFormField(
+                                      decoration: const InputDecoration(),
+                                      label: '시간간격',
+                                      onSaved: (newValue) {
+                                        setState(() {
+                                          timeInterval = newValue;
+                                        });
+                                      },
+                                      validator: (value) {
+                                        if (value.isEmpty) {
+                                          return '값을 입력해주세요';
+                                        }
+
+                                        double valueAsDouble =
+                                            double.parse(value);
+                                        if (valueAsDouble < 0.1 ||
+                                            valueAsDouble > 30.0) {
+                                          return '1.0~9.9 값을 입력';
+                                        }
+
+                                        return null;
+                                      })),
+                              const SizedBox(width: 30),
+                            ])),
+                    Container(
+                        padding: const EdgeInsets.fromLTRB(0, 0, 0, 60),
+                        width: 1000,
+                        child: Row(
                           children: [
+                            const SizedBox(width: 30),
                             Expanded(
-                                child: renderTextFormField(
-                                    keyboardType:
-                                        const TextInputType.numberWithOptions(
-                                            decimal: true),
-                                    decoration: const InputDecoration(),
-                                    label: '반복횟수',
-                                    onSaved: (newValue) {},
-                                    validator: (value) {})),
+                                child: Text.rich(
+                              TextSpan(text: '1회 : ', children: <TextSpan>[
+                                TextSpan(
+                                    text: context
+                                        .watch<CustomTimer>()
+                                        .currentTime
+                                        .toStringAsFixed(1))
+                              ]),
+                            )),
+                            const SizedBox(width: 30),
                             Expanded(
-                                child: renderTextFormField(
-                                    keyboardType:
-                                        const TextInputType.numberWithOptions(
-                                            decimal: true),
-                                    decoration: const InputDecoration(),
-                                    label: '시작값',
-                                    onSaved: (newValue) {},
-                                    validator: (value) {})),
+                                child: Text.rich(
+                              TextSpan(text: '2회 : ', children: <TextSpan>[
+                                TextSpan(
+                                    text: context
+                                        .watch<CustomTimer>()
+                                        .currentTime
+                                        .toStringAsFixed(1))
+                              ]),
+                            )),
+                            const SizedBox(width: 30),
                             Expanded(
-                                child: renderTextFormField(
-                                    keyboardType:
-                                        const TextInputType.numberWithOptions(
-                                            decimal: true),
-                                    decoration: const InputDecoration(),
-                                    label: 'interval',
-                                    onSaved: (newValue) {},
-                                    validator: (value) {})),
+                                child: Text.rich(
+                              TextSpan(text: '3회 : ', children: <TextSpan>[
+                                TextSpan(
+                                    text: context
+                                        .watch<CustomTimer>()
+                                        .currentTime
+                                        .toStringAsFixed(1))
+                              ]),
+                            )),
+                            const SizedBox(width: 30),
                             Expanded(
-                                child: renderTextFormField(
-                                    keyboardType:
-                                        const TextInputType.numberWithOptions(
-                                            decimal: true),
-                                    decoration: const InputDecoration(),
-                                    label: '시간간격',
-                                    onSaved: (newValue) {},
-                                    validator: (value) {}))
-                          ])),
-                  Container(
-                      padding: const EdgeInsets.fromLTRB(0, 0, 0, 60),
-                      width: 1000,
-                      child: Row(
+                                child: Text.rich(
+                              TextSpan(text: '4회 : ', children: <TextSpan>[
+                                TextSpan(
+                                    text: context
+                                        .watch<CustomTimer>()
+                                        .currentTime
+                                        .toStringAsFixed(1))
+                              ]),
+                            )),
+                            const SizedBox(width: 30),
+                          ],
+                        )),
+                    Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
+                          const SizedBox(width: 30),
+                          ElevatedButton(
+                            onPressed: () async {
+                              if (formKey.currentState!.validate()) {
+                                formKey.currentState?.save();
+                                context.read<CustomTimer>().start();
+                              }
+                            },
+                            child: const Text('START'),
+                          ),
+                          const SizedBox(width: 30),
                           Expanded(
-                              flex: 1,
-                              child: TextField(
-                                  controller: _textEditingController,
-                                  keyboardType:
-                                      const TextInputType.numberWithOptions(
-                                          decimal: true),
-                                  decoration: const InputDecoration(
-                                      labelText: '1회',
-                                      enabledBorder: OutlineInputBorder(
-                                          borderSide: BorderSide(
-                                              width: 2,
-                                              color: Colors.indigoAccent))),
-                                  onChanged: (text) {
-                                    setState(() {
-                                      firstRoundValue = text;
-                                    });
-                                  })),
-                          Expanded(
-                              flex: 1,
-                              child: TextField(
-                                  controller: _textEditingController,
-                                  keyboardType:
-                                      const TextInputType.numberWithOptions(
-                                          decimal: true),
-                                  decoration: const InputDecoration(
-                                      labelText: '2회',
-                                      enabledBorder: OutlineInputBorder(
-                                          borderSide: BorderSide(
-                                              width: 2,
-                                              color: Colors.indigoAccent))),
-                                  onChanged: (text) {
-                                    setState(() {
-                                      secondRoundValue = text;
-                                    });
-                                  })),
-                          Expanded(
-                              flex: 1,
-                              child: TextField(
-                                  controller: _textEditingController,
-                                  keyboardType:
-                                      const TextInputType.numberWithOptions(
-                                          decimal: true),
-                                  decoration: const InputDecoration(
-                                      labelText: '3회',
-                                      enabledBorder: OutlineInputBorder(
-                                          borderSide: BorderSide(
-                                              width: 2,
-                                              color: Colors.indigoAccent))),
-                                  onChanged: (text) {
-                                    setState(() {
-                                      thirdRoundValue = text;
-                                    });
-                                  })),
-                          Expanded(
-                              flex: 1,
-                              child: TextField(
-                                  controller: _textEditingController,
-                                  keyboardType:
-                                      const TextInputType.numberWithOptions(
-                                          decimal: true),
-                                  decoration: const InputDecoration(
-                                      labelText: '4회',
-                                      enabledBorder: OutlineInputBorder(
-                                          borderSide: BorderSide(
-                                              width: 2,
-                                              color: Colors.indigoAccent))),
-                                  onChanged: (text) {
-                                    setState(() {
-                                      fourthRoundValue = text;
-                                    });
-                                  }))
-                        ],
-                      )),
-                  Row(children: [
-                    ElevatedButton(
-                      onPressed: () {},
-                      child: const Text('START'),
-                    ),
-                    Expanded(
-                      child: TextField(
-                          keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true),
-                          decoration: const InputDecoration(
-                              labelText: '진행시간',
-                              enabledBorder: OutlineInputBorder(
-                                  borderSide: BorderSide(
-                                      width: 2, color: Colors.indigoAccent))),
-                          onChanged: (text) {
-                            setState(() {
-                              durationTime = text;
-                            });
-                          }),
-                    ),
-                    ElevatedButton(
-                      onPressed: () {
-                        _alert("message");
-                        _resetAllValue();
-                      },
-                      child: const Text('RESET'),
-                    )
-                  ])
-                ], // children
-              ),
-            )),
+                              child: Center(
+                                  child: Text(context
+                                      .watch<CustomTimer>()
+                                      .currentTime
+                                      .toStringAsFixed(1)))),
+                          const SizedBox(width: 30),
+                          ElevatedButton(
+                            onPressed: () {
+                              _resetAllValue();
+                              formKey.currentState?.save();
+                              context.read<CustomTimer>().reset();
+                            },
+                            child: const Text('RESET'),
+                          ),
+                          const SizedBox(width: 30)
+                        ])
+                  ], // children
+                ),
+              ))),
+        ),
       ),
     );
-  }
-
-  String _checkSupportNfc() {
-    if (isNfcAvalible) {
-      return "You can use NFC! Have fun";
-    } else {
-      if (Platform.isIOS) {
-        //Ios doesnt allow the user to turn of NFC at all,  if its not avalible it means its not build in
-        return "Your device doesn't support NFC.\n Because IOS doesn't support it";
-      } else {
-        //Android phones can turn of NFC in the settings
-        return "Your device doesn't support NFC or it's turned off in the system settings";
-      }
-    }
   }
 
   //Helper method to show a quick message
