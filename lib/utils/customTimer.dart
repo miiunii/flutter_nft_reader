@@ -12,10 +12,17 @@ class CustomTimer extends ChangeNotifier{
     super.dispose();
   }
 
-  void start() {
+  void start(String interval) {
+    double duration = double.parse(interval);
     timer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
-      currentTime += 0.1;
-      notifyListeners();
+
+      if (currentTime >= duration) {
+        currentTime -= 0.1;
+        pause();
+        }
+
+        currentTime += 0.1;
+        notifyListeners();
     });
   }
 
@@ -24,8 +31,8 @@ class CustomTimer extends ChangeNotifier{
   }
 
   void reset() {
-    timer?.cancel();
     currentTime = 0.0;
+    timer?.cancel();
     notifyListeners();
   }
 }
