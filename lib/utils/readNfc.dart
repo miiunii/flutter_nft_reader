@@ -2,94 +2,149 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/cupertino.dart';
 import 'package:nfc_manager/nfc_manager.dart';
+import 'package:flutter_nfc_kit/flutter_nfc_kit.dart';
+import 'package:ndef/ndef.dart' as ndef;
+
 
 class NfcEvents extends ChangeNotifier {
   bool listenerRunning = false;
   bool writeCounterOnNextContact = false;
+  bool readingFinished = false;
+  bool writingFinished = false;
+
   ValueNotifier<dynamic> result = ValueNotifier('ready to start');
-  List<String> resultValue = ['', '', '', ''];
+  ValueNotifier<dynamic> resultValue = ValueNotifier(['', '', '', '']);
 
-  getValue(int index) => resultValue[index];
+  getValue(int index) => resultValue.value[index];
 
-  setValue(int index, String value) => resultValue[index] = value;
+  setValue(int index, String value) => resultValue.value[index] = value;
 
-  Future<void> writeAndReadNfc(String starting, int writingPoint) async {
+  Future<bool> writeAndReadNfc(int starting, int writingPoint,
+      BuildContext context) async {
     result.value = 'please bring your phone to tag';
 
-    NfcManager.instance.startSession(onDiscovered: (NfcTag tag) async {
-    result.value = tag.data;
-      //   Ndef? ndef = Ndef.from(tag);
-    //   var ndefMessage = ndef!.cachedMessage;
-    //   final record = ndefMessage!.records[0];
-    //
-    //   // write NFC
-    //   if (!ndef.isWritable) {
-    //     result.value = 'Tag is not ndef writable';
-    //     NfcManager.instance.stopSession(errorMessage: result.value);
-    //     return;
-    //   }
-    //
-    //   NdefMessage message = NdefMessage([NdefRecord.createText(starting)]);
-    //
-    //   try {
-    //     await ndef.write(message);
-    //     result.value = 'write success';
-    //
-    //     // read NFC
-    //     if (record.typeNameFormat == NdefTypeNameFormat.nfcWellknown &&
-    //         record.type.length == 1 &&
-    //         record.type.first == 0x54 && result.value == 'write success') {
-    //       result.value = 'read start';
-    //
-    //       // record type: NFC WellKnown Text
-    //       final languageCodeLength = record.payload.first;
-    //       final languageCode =
-    //           ascii.decode(record.payload.sublist(1, 1 + languageCodeLength));
-    //       final text =
-    //           utf8.decode(record.payload.sublist(1 + languageCodeLength));
-    //
-    //       resultValue[writingPoint] = text;
-    //       result.value = 'read success';
-    //       notifyListeners();
-    //       NfcManager.instance.stopSession();
-    //     }
-    //
-    //     return;
-    //   } catch (e) {
-    //     NfcManager.instance.stopSession(errorMessage: result.value.toString());
-    //     result.value = 'write fail...';
-    //     return;
-    //   }
-    });
-  }
+    while (writingPoint < 3) {
+      await writeNdef(starting);
 
-  Future<void> readTag(int writingPoint) async {
-    result.value = 'read start';
+      await readTag(writingPoint);
+
+      writingPoint += 1;
+      starting += 1;
+    }
+
+    if (writingFinished && readingFinished) {
+      return Future<bool>.value(true);
+    }
+
+    return Future<bool>.value(false);
 
     NfcManager.instance.startSession(onDiscovered: (NfcTag tag) async {
-      var ndef = Ndef.from(tag);
-      var ndefMessage = ndef!.cachedMessage;
-      final record = ndefMessage!.records[1];
+      try {
+        result.value = 'current writingPoint : $writingPoint';
 
-      if (record.typeNameFormat == NdefTypeNameFormat.nfcWellknown &&
-          record.type.length == 1 &&
-          record.type.first == 0x54) {
-        // record type: NFC Wellknown Text
-        final languageCodeLength = record.payload.first;
-        final languageCode =
-            ascii.decode(record.payload.sublist(1, 1 + languageCodeLength));
-        final text =
-            utf8.decode(record.payload.sublist(1 + languageCodeLength));
-        resultValue[writingPoint] = text;
-        result.value = 'read success';
-        notifyListeners();
-        NfcManager.instance.stopSession();
+        Ndef? ndef = Ndef.from(tag);
+
+        if (ndef != null) {
+          if (!ndef.isWritable) {
+            result.value = 'Tag is not ndef writable';
+            NfcManager.instance.stopSession(errorMessage: result.value);
+            return;
+          }
+
+          // write NFC
+          NdefMessage message =
+              NdefMessage([NdefRecord.createText(starting.toString())]);
+
+          await ndef.write(message);
+          await Future.delayed(const Duration(seconds: 5));
+
+          result.value = 'write success $writingPoint';
+          await Future.delayed(const Duration(seconds: 5));
+
+          // read NFC
+          var ndefMessage = ndef.cachedMessage;
+          var record = ndefMessage!.records.last;
+
+          if (record.typeNameFormat == NdefTypeNameFormat.nfcWellknown &&
+              record.type.length == 1 &&
+              record.type.first == 0x54) {
+
+            result.value = 'read start $writingPoint';
+            await Future.delayed(const Duration(seconds: 5));
+
+            // record type: NFC WellKnown Text
+            var languageCodeLength = record.payload.first;
+            var languageCode =
+                ascii.decode(record.payload.sublist(1, 1 + languageCodeLength));
+            var text =
+                utf8.decode(record.payload.sublist(1 + languageCodeLength));
+
+            resultValue.value[writingPoint] = text;
+            result.value = 'read success $writingPoint';
+
+            notifyListeners();
+            await Future.delayed(const Duration(seconds: 5));
+            NfcManager.instance.stopSession();
+            return;
+          } else {
+            result.value = 'write fail $writingPoint';
+            NfcManager.instance
+                .stopSession(errorMessage: result.value);
+            return;
+          }
+        }
+        result.value = 'There is no NDEF tag';
+        NfcManager.instance
+            .stopSession(errorMessage: result.value);
+      } catch (e) {
+        result.value = 'unknown error : $e';
+        NfcManager.instance.stopSession(errorMessage: result.value);
+        return;
       }
     });
   }
 
-  Future<void> writeNdef(String starting) async {
-    result.value = 'write start';
+  Future<void> readTag(int writingPoint) async {
+    readingFinished = false;
+    result.value = 'read start $writingPoint';
+
+    NfcManager.instance.startSession(onDiscovered: (NfcTag tag) async {
+      var ndef = Ndef.from(tag);
+      var ndefMessage = ndef!.cachedMessage;
+      var record = ndefMessage!.records.first;
+
+      try {
+        if (record.typeNameFormat == NdefTypeNameFormat.nfcWellknown &&
+            record.type.length == 1 &&
+            record.type.first == 0x54) {
+          // record type: NFC Wellknown Text
+          var languageCodeLength = record.payload.first;
+          var languageCode =
+          ascii.decode(record.payload.sublist(1, 1 + languageCodeLength));
+          String text =
+          utf8.decode(record.payload.sublist(1 + languageCodeLength));
+
+          result.value = 'read success : $writingPoint';
+
+          await setValue(writingPoint, text);
+          await Future.delayed(const Duration(seconds: 5));
+          readingFinished = true;
+          notifyListeners();
+          // NfcManager.instance.stopSession(alertMessage: "finished!");
+        }
+      } catch (e) {
+        result.value = 'read fail : $e';
+        NfcManager.instance.stopSession(errorMessage: "finished!");
+        return;
+      }
+    });
+
+    // return Future<bool>.value(isReadingOver);
+  }
+
+  Future<void> writeNdef(int starting) async {
+    result.value = 'write start $starting';
+    writingFinished = false;
 
     NfcManager.instance.startSession(onDiscovered: (NfcTag tag) async {
       Ndef? ndef = Ndef.from(tag);
@@ -100,37 +155,19 @@ class NfcEvents extends ChangeNotifier {
         return;
       }
 
-      NdefMessage message = NdefMessage([NdefRecord.createText(starting)]);
+      NdefMessage message = NdefMessage(
+          [NdefRecord.createText(starting.toString())]);
 
       try {
         await ndef.write(message);
-        // NfcManager.instance.stopSession();
-        result.value = 'write success';
-        return;
-      } catch (e) {
-        NfcManager.instance.stopSession(errorMessage: result.value.toString());
-        result.value = 'write fail...';
-        return;
-      }
-    });
-  }
 
-  void writeLockNdef() {
-    NfcManager.instance.startSession(onDiscovered: (NfcTag tag) async {
-      var ndef = Ndef.from(tag);
-      if (ndef == null) {
-        result.value = 'Tag is not ndef';
-        NfcManager.instance.stopSession(errorMessage: result.value.toString());
-        return;
-      }
+        result.value = 'write success $starting';
 
-      try {
-        await ndef.writeLock();
-        result.value = 'Success to "Ndef Write Lock"';
-        NfcManager.instance.stopSession();
+        writingFinished = true;
+        await Future.delayed(const Duration(seconds: 5));
       } catch (e) {
-        result.value = e;
-        NfcManager.instance.stopSession(errorMessage: result.value.toString());
+        result.value = 'write fail : $e';
+        NfcManager.instance.stopSession(errorMessage: result.value);
         return;
       }
     });

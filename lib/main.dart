@@ -1,9 +1,9 @@
-import 'dart:ffi';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:nfc_test_app/widget/alert.dart';
+import 'package:nfc_manager/nfc_manager.dart';
 import 'package:provider/provider.dart';
-import 'dart:io' show Platform;
+import 'dart:io' show Platform, sleep;
 import './utils/renderTextFormField.dart';
 import './utils/checking.dart';
 import './utils/customTimer.dart';
@@ -29,15 +29,17 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: const MyHomePage(title: 'Flutter NFC Demo'),
+      home:
+          const MyHomePage(result: 'ready to start', title: 'Flutter NFC Demo'),
     );
   }
 }
 
 class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
   final String title;
+  final String result;
+
+  const MyHomePage({super.key, required this.result, required this.title});
 
   @override
   State<MyHomePage> createState() => _MyHomePageState();
@@ -49,21 +51,20 @@ class _MyHomePageState extends State<MyHomePage> {
   String repeatCounts = '';
   String startingValue = '';
   String intervalCounts = '';
-  String timeInterval = '';
   List<String> roundValue = ['0', '0', '0', '0'];
-  String durationTime = '';
+  late String result;
+  int initialRepeatCount = 0;
 
   final formKey = GlobalKey<FormState>();
 
   @override
   void initState() {
     super.initState();
+    result = widget.result;
   }
 
   @override
   Widget build(BuildContext context) {
-    Alert alert = Alert();
-
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.title),
@@ -138,6 +139,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                         }
 
                                         int valueAsInt = int.parse(value);
+
                                         if (valueAsInt < 1 || valueAsInt > 20) {
                                           return '1~20 값을 입력';
                                         }
@@ -179,36 +181,28 @@ class _MyHomePageState extends State<MyHomePage> {
                             Expanded(
                                 child: Text.rich(
                               TextSpan(text: '1회 : ', children: <TextSpan>[
-                                TextSpan(
-                                    text:
-                                        context.watch<NfcEvents>().getValue(0))
+                                TextSpan(text: roundValue[0])
                               ]),
                             )),
                             const SizedBox(width: 30),
                             Expanded(
                                 child: Text.rich(
                               TextSpan(text: '2회 : ', children: <TextSpan>[
-                                TextSpan(
-                                    text:
-                                        context.watch<NfcEvents>().getValue(1))
+                                TextSpan(text: roundValue[1])
                               ]),
                             )),
                             const SizedBox(width: 30),
                             Expanded(
                                 child: Text.rich(
                               TextSpan(text: '3회 : ', children: <TextSpan>[
-                                TextSpan(
-                                    text:
-                                        context.watch<NfcEvents>().getValue(2))
+                                TextSpan(text: roundValue[2])
                               ]),
                             )),
                             const SizedBox(width: 30),
                             Expanded(
                                 child: Text.rich(
                               TextSpan(text: '4회 : ', children: <TextSpan>[
-                                TextSpan(
-                                    text:
-                                        context.watch<NfcEvents>().getValue(3))
+                                TextSpan(text: roundValue[3])
                               ]),
                             )),
                             const SizedBox(width: 30),
@@ -222,25 +216,25 @@ class _MyHomePageState extends State<MyHomePage> {
                             onPressed: () async {
                               if (formKey.currentState!.validate()) {
                                 formKey.currentState!.save();
-                                runNfcDemo(
-                                    repeatCounts,
-                                    startingValue,
-                                    intervalCounts
-                                );
+                                loopNfcDemo();
                               }
                             },
                             child: const Text('START'),
                           ),
                           const SizedBox(width: 30),
-                          Expanded(
-                              child: Center(
-                                  child: Text(context.watch<NfcEvents>().result.value))),
+                          Expanded(child: Center(child: Text(result))),
                           const SizedBox(width: 30),
                           ElevatedButton(
                             onPressed: () {
-                              _resetAllValue();
-                              formKey.currentState?.save();
-                              context.read<CustomTimer>().reset();
+                              // setState((){
+                              //   repeatCounts = '';
+                              //   startingValue = '';
+                              //   intervalCounts = '';
+                              //   roundValue = ['0', '0', '0', '0'];
+                              //   result = 'ready to start';
+                              // });
+                              formKey.currentState!.save();
+                              NfcManager.instance.stopSession();
                             },
                             child: const Text('RESET'),
                           ),
@@ -254,18 +248,66 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
-  void _resetAllValue() {
-    _textEditingController.clear();
+  Future<void> setResultState(String value) async{
+    setState(() => result = value);
   }
 
-  void runNfcDemo(String repeatCount, String initialValue, String intervalValue ) async {
-    int initialRepeatCount = 0;
-    int toIntRepeatCount = int.parse(repeatCount);
-    int toIntInitialValue = int.parse(initialValue);
-    double toDoubleIntervalValue = double.parse(intervalValue);
-
-    context.read<NfcEvents>().writeAndReadNfc(initialValue, 0);
-
+  Future<void> setRoundValueState(int location, String value) async{
+    setState(() => roundValue[location] = value);
   }
 
+  Future<void> runNfcDemo(
+    int repeatCount, int nfcValue, String intervalValue) async {
+    print('object');
+    NfcManager.instance.startSession(onDiscovered: (NfcTag tag) async {
+      print('object');
+      try {
+        Ndef? ndef = Ndef.from(tag);
+
+        // write
+        setResultState('write $nfcValue');
+
+        if (!ndef!.isWritable) {
+          setState(() => result = 'Tag is not ndef writable');
+        }
+
+        NdefMessage message =
+            NdefMessage([NdefRecord.createText(nfcValue.toString())]);
+
+        await ndef.write(message);
+        sleep(Duration(seconds: int.parse(intervalValue)));
+
+        // read
+        NdefMessage readValue = await ndef.read();
+        NdefRecord record = readValue.records.first;
+        setResultState('read $nfcValue');
+
+        if (record.typeNameFormat == NdefTypeNameFormat.nfcWellknown &&
+            record.type.length == 1 &&
+            record.type.first == 0x54) {
+          var languageCodeLength = record.payload.first;
+          var languageCode =
+              ascii.decode(record.payload.sublist(1, 1 + languageCodeLength));
+          String text =
+              utf8.decode(record.payload.sublist(1 + languageCodeLength));
+
+          await setRoundValueState(repeatCount, text);
+          setState(() {
+            initialRepeatCount += 1;
+            startingValue = (nfcValue + 1).toString();
+          });
+          sleep(Duration(seconds: int.parse(intervalValue)));
+        }
+      } catch (e) {
+        setState(() => result = e.toString());
+      }
+    });
+  }
+
+  Future<void> loopNfcDemo() async {
+    for (int i=0; i < int.parse(repeatCounts); i++) {
+      print('object');
+      runNfcDemo(initialRepeatCount, int.parse(startingValue), intervalCounts);
+    }
+  }
 }
