@@ -9,8 +9,6 @@ import './utils/checking.dart';
 import './utils/customTimer.dart';
 import './utils/readNfc.dart';
 
-var _textEditingController = TextEditingController();
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized(); // Required for the line below
   runApp(MultiProvider(providers: [
@@ -54,6 +52,7 @@ class _MyHomePageState extends State<MyHomePage> {
   List<String> roundValue = ['0', '0', '0', '0'];
   late String result;
   int initialRepeatCount = 0;
+  bool isFinished = false;
 
   final formKey = GlobalKey<FormState>();
 
@@ -226,14 +225,12 @@ class _MyHomePageState extends State<MyHomePage> {
                           const SizedBox(width: 30),
                           ElevatedButton(
                             onPressed: () {
-                              // setState((){
-                              //   repeatCounts = '';
-                              //   startingValue = '';
-                              //   intervalCounts = '';
-                              //   roundValue = ['0', '0', '0', '0'];
-                              //   result = 'ready to start';
-                              // });
-                              formKey.currentState!.save();
+                              setState((){
+                                roundValue = ['0', '0', '0', '0'];
+                                result = 'ready to start';
+                                initialRepeatCount = 0;
+                              });
+                              formKey.currentState!.reset();
                               NfcManager.instance.stopSession();
                             },
                             child: const Text('RESET'),
@@ -256,58 +253,65 @@ class _MyHomePageState extends State<MyHomePage> {
     setState(() => roundValue[location] = value);
   }
 
-  Future<void> runNfcDemo(
-    int repeatCount, int nfcValue, String intervalValue) async {
-    print('object');
-    NfcManager.instance.startSession(onDiscovered: (NfcTag tag) async {
-      print('object');
-      try {
-        Ndef? ndef = Ndef.from(tag);
+  Future<void> writeNfcTag(int nfcValue, String intervalValue, NfcTag tag) async {
+    try {
+      Ndef? ndef = Ndef.from(tag);
 
-        // write
-        setResultState('write $nfcValue');
+      // write
+      setResultState('write $nfcValue');
 
-        if (!ndef!.isWritable) {
-          setState(() => result = 'Tag is not ndef writable');
-        }
-
-        NdefMessage message =
-            NdefMessage([NdefRecord.createText(nfcValue.toString())]);
-
-        await ndef.write(message);
-        sleep(Duration(seconds: int.parse(intervalValue)));
-
-        // read
-        NdefMessage readValue = await ndef.read();
-        NdefRecord record = readValue.records.first;
-        setResultState('read $nfcValue');
-
-        if (record.typeNameFormat == NdefTypeNameFormat.nfcWellknown &&
-            record.type.length == 1 &&
-            record.type.first == 0x54) {
-          var languageCodeLength = record.payload.first;
-          var languageCode =
-              ascii.decode(record.payload.sublist(1, 1 + languageCodeLength));
-          String text =
-              utf8.decode(record.payload.sublist(1 + languageCodeLength));
-
-          await setRoundValueState(repeatCount, text);
-          setState(() {
-            initialRepeatCount += 1;
-            startingValue = (nfcValue + 1).toString();
-          });
-          sleep(Duration(seconds: int.parse(intervalValue)));
-        }
-      } catch (e) {
-        setState(() => result = e.toString());
+      if (!ndef!.isWritable) {
+        setState(() => result = 'Tag is not ndef writable');
       }
-    });
+
+      NdefMessage message =
+      NdefMessage([NdefRecord.createText(nfcValue.toString())]);
+
+      await ndef.write(message);
+
+      sleep(Duration(seconds: int.parse(intervalValue)));
+
+    } catch (e) {
+      setState(() => result = 'write failed : $e');
+    }
+  }
+
+  Future<void> readNfcTag(int repeatCount, int nfcValue, String intervalValue, NfcTag tag) async {
+    try {
+      Ndef? ndef = Ndef.from(tag);
+
+      setResultState('read $nfcValue');
+      NdefMessage readValue = await ndef!.read();
+      NdefRecord record = readValue.records.first;
+
+      if (record.typeNameFormat == NdefTypeNameFormat.nfcWellknown &&
+          record.type.length == 1 &&
+          record.type.first == 0x54) {
+        var languageCodeLength = record.payload.first;
+        var languageCode =
+        ascii.decode(record.payload.sublist(1, 1 + languageCodeLength));
+        String text =
+        utf8.decode(record.payload.sublist(1 + languageCodeLength));
+
+        await setRoundValueState(repeatCount, text);
+
+        setState(() {
+          initialRepeatCount += 1;
+          startingValue = (nfcValue + 1).toString();
+        });
+      }
+    } catch (e) {
+      setState(() => result = 'read failed : $e');
+    }
   }
 
   Future<void> loopNfcDemo() async {
-    for (int i=0; i < int.parse(repeatCounts); i++) {
-      print('object');
-      runNfcDemo(initialRepeatCount, int.parse(startingValue), intervalCounts);
-    }
+    NfcManager.instance.startSession(onDiscovered: (NfcTag tag) async {
+      for (int i=0; i < int.parse(repeatCounts); i++) {
+        await writeNfcTag(int.parse(startingValue), intervalCounts, tag);
+        await readNfcTag(initialRepeatCount, int.parse(startingValue), intervalCounts, tag);
+      }
+    });
+
   }
 }
