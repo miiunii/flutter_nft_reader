@@ -13,7 +13,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized(); // Required for the line below
   runApp(MultiProvider(providers: [
     ChangeNotifierProvider(create: (_) => CustomTimer()),
-    ChangeNotifierProvider(create: (_) => NfcEvents())
+    // ChangeNotifierProvider(create: (_) => NfcEvents())
   ], child: const MyApp()));
 }
 
